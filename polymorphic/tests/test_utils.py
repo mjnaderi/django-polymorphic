@@ -1,7 +1,8 @@
 from django.test import TransactionTestCase
 
 from polymorphic.models import PolymorphicTypeUndefined, PolymorphicModel
-from polymorphic.tests.models import Model2A, Model2B, Model2C, Model2D, Enhance_Inherit, Enhance_Base
+from polymorphic.tests.models import Model2A, Model2B, Model2C, Model2D, Enhance_Inherit, \
+    Enhance_Base, UserProfile, Participant, Team
 from polymorphic.utils import reset_polymorphic_ctype, sort_by_subclass, get_base_polymorphic_model
 
 
@@ -74,3 +75,43 @@ class UtilsTests(TransactionTestCase):
         self.assertIs(get_base_polymorphic_model(C), B)
 
         self.assertIs(get_base_polymorphic_model(C, allow_abstract=True), A)
+
+    def test_unknown_issue(self):
+
+        user_a = UserProfile.objects.create(name='a')
+        user_b = UserProfile.objects.create(name='b')
+        user_c = UserProfile.objects.create(name='c')
+
+        team1 = Team.objects.create(team_name='team1')
+        team1.user_profiles.add(user_a, user_b, user_c)
+        team1.save()
+
+        team2 = Team.objects.create(team_name='team2')
+        team2.user_profiles.add(user_c)
+        team2.save()
+
+        # without prefetch_related, the test passes
+        my_teams = Team.objects.filter(user_profiles=user_c).prefetch_related(
+            'user_profiles').distinct()
+
+        print(my_teams[0].user_profiles.all())
+        print(my_teams[1].user_profiles.all())
+        self.assertEqual(len(my_teams[0].user_profiles.all()), 3)
+        self.assertEqual(len(my_teams[1].user_profiles.all()), 1)
+
+        print(my_teams[0].user_profiles.all())
+        print(my_teams[1].user_profiles.all())
+        self.assertEqual(len(my_teams[0].user_profiles.all()), 3)
+        self.assertEqual(len(my_teams[1].user_profiles.all()), 1)
+
+        # without this "for" loop, the test passes
+        for _ in my_teams:
+            pass
+
+        print(my_teams[0].user_profiles.all())
+        print(my_teams[1].user_profiles.all())
+        # This time, test fails.
+        # with sqlite:      4 != 3
+        # with postgresql:  2 != 3
+        self.assertEqual(len(my_teams[0].user_profiles.all()), 3)
+        self.assertEqual(len(my_teams[1].user_profiles.all()), 1)

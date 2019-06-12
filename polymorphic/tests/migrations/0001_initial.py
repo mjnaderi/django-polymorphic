@@ -1130,4 +1130,51 @@ class Migration(migrations.Migration):
             },
             bases=('tests.duck',),
         ),
+        migrations.CreateModel(
+            name='Participant',
+            fields=[
+                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False,
+                                        verbose_name='ID')),
+            ],
+            options={
+                'abstract': False,
+                'base_manager_name': 'objects',
+            },
+        ),
+        migrations.CreateModel(
+            name='Team',
+            fields=[
+                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False,
+                                        verbose_name='ID')),
+                ('team_name', models.CharField(max_length=100)),
+            ],
+        ),
+        migrations.CreateModel(
+            name='UserProfile',
+            fields=[
+                ('participant_ptr', models.OneToOneField(auto_created=True,
+                                                         on_delete=django.db.models.deletion.CASCADE,
+                                                         parent_link=True, primary_key=True,
+                                                         serialize=False, to='tests.Participant')),
+                ('name', models.CharField(max_length=100)),
+            ],
+            options={
+                'abstract': False,
+                'base_manager_name': 'objects',
+            },
+            bases=('tests.participant',),
+        ),
+        migrations.AddField(
+            model_name='participant',
+            name='polymorphic_ctype',
+            field=models.ForeignKey(editable=False, null=True,
+                                    on_delete=django.db.models.deletion.CASCADE,
+                                    related_name='polymorphic_tests.participant_set+',
+                                    to='contenttypes.ContentType'),
+        ),
+        migrations.AddField(
+            model_name='team',
+            name='user_profiles',
+            field=models.ManyToManyField(related_name='user_teams', to='tests.UserProfile'),
+        ),
     ]
